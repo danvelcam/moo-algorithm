@@ -1,0 +1,18 @@
+Parametrizar los valores que pueden tomar los "genes" de cada individuo.
+xi entre 0 y 1 (Valores parametrizados)
+Lambda_i, es un vector que representa cada uno de los subproblemas del 
+problema de optimizacion multi-objetivo. Cada vector lambda_i representa la
+diferente pendiente de las rectas que conectan el punto de referencia (zi) 
+con el frente ideal.
+
+Para la construccion de los lambda-i. Se han de generar vectores uniformes, donde la distancia entre cada uno de ellos
+sea la misma. 
+D = 1/ (N-1)
+
+Ya que en este caso, utilizaremos ZDT3 con dos funciones objetivo, los vectores lambda-i solo tendran un vector de dos elementos.
+Los valores deberán ir desde (0,1) ..... (1,0) Dichos vectores deberán estar uniformemente distribuidos
+
+Para el calculo de las distancias euclideas matriz simetrica
+
+
+print(np.linalg.norm(self.lambda_population[0] - self.lambda_population[1]))
