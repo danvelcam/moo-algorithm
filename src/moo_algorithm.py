@@ -14,7 +14,8 @@ class MooAlgorithm():
         self.lambda_population = self.generate_lambda_population()
         self.euclidean_distance  = self.euclidean_distance_matrix()
         self.neighbors = self.closest_neighbors()
-        self.xi = np.random.rand(self.p)
+        self.xi = np.array([np.random.rand(30) for i in range(self.p)])
+        self.evaluations = self.evaluate_population() 
 
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
@@ -42,7 +43,19 @@ class MooAlgorithm():
             closest_neighbors = np.argsort(self.euclidean_distance[i])[:self.ng_size]
             neighbors.append(closest_neighbors)
         return np.array(neighbors)
+    
+    def evaluate(self,individual):
+        f1 = individual[0]
+        g = 1 + (9 / (30 - 1)) * np.sum(individual[1:])
+        h = 1 - math.sqrt(f1/g) - ((f1/g) * math.sin(10 * math.pi * f1 ))
+        f2 = g * h
+        return np.array([f1,f2])
 
+    def evaluate_population(self):
+        population_evaluated = []
+        for i in range(self.p):
+            population_evaluated.append(self.evaluate(self.xi[i]))
+        return np.array(population_evaluated)
 
 
 
