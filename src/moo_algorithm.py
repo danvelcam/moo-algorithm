@@ -13,7 +13,8 @@ class MooAlgorithm():
         self.max = max
         self.lambda_population = self.generate_lambda_population()
         self.euclidean_distance  = self.euclidean_distance_matrix()
-        self.neighbors = self.closest_neighbors(self)
+        self.neighbors = self.closest_neighbors()
+        self.xi = np.random.rand(self.p)
 
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
