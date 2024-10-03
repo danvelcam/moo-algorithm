@@ -11,6 +11,8 @@ class MooAlgorithm():
         
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
+        if self.p  <= 0:
+            raise ValueError(f"Population should be a positive number, but received {self.p}")
         vectors = []
         for i in range(self.p):
             x1 = (i / self.p) * self.max
