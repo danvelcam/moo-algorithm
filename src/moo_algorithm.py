@@ -1,18 +1,21 @@
 import numpy as np
 
 class MooAlgorithm():
-    def __init__(self,population,generations,neighbourhood_size, max):
+    def __init__(self,population,generations,neighborhood, max):
+        if population  <= 0:
+            raise ValueError(f"Population should be a positive number, but received {population}")
+        if not  0 < neighborhood <= 1:
+            raise ValueError(f"""Neighborhood should be a percentage 
+                represented between 0 (not included) and 1 (included), but received {neighborhood}""")
         self.p = population
         self.g = generations
-        self.ng_size = neighbourhood_size
+        self.ng_size = neighborhood
         self.max = max
         self.lambda_population = self.generate_lambda_population()
         self.euclidean_distance  = self.euclidean_distance_matrix()
         
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
-        if self.p  <= 0:
-            raise ValueError(f"Population should be a positive number, but received {self.p}")
         vectors = []
         for i in range(self.p):
             x1 = (i / self.p) * self.max
@@ -30,7 +33,6 @@ class MooAlgorithm():
                 row.append(np.linalg.norm(vector_i - vector_j))
             matrix.append(row)
         return np.array(matrix)
-                      
 
 
-MooAlgorithm(10,10,2,1.0)
+MooAlgorithm(10,10,0.15,1.0)
