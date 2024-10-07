@@ -1,7 +1,8 @@
 import numpy as np
 import math
+import random
 class MooAlgorithm():
-    def __init__(self, population, generations, neighborhood, max):
+    def __init__(self, population, generations, neighborhood, max, scale_factor=0.5, boundary_handling = "rebound"):
         if population  <= 0:
             raise ValueError(f"Population should be a positive number, but received {population}")
         if not  0 < neighborhood <= 1:
@@ -16,6 +17,10 @@ class MooAlgorithm():
         self.neighbors = self.closest_neighbors()
         self.xi = np.array([np.random.rand(30) for i in range(self.p)])
         self.evaluations = self.evaluate_population() 
+        self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
+        self.scale_factor = scale_factor
+        self.boundary_handling = boundary_handling
+        self.cross(6)
 
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
@@ -56,7 +61,25 @@ class MooAlgorithm():
         for i in range(self.p):
             population_evaluated.append(self.evaluate(self.xi[i]))
         return np.array(population_evaluated)
+    
+    def cross(self, individual_index):
+        cross_individuals = random.choices(self.neighbors[individual_index], k=3)
+        r1,r2,r3 = cross_individuals
+        r1 = self.xi[r1]
+        r2 = self.xi[r2]
+        r3 = self.xi[r3]
+        y = r1 + self.scale_factor * (r2 - r3)
+        match self.boundary_handling:
+            case "rebound":
+                y = np.array([-xi if xi < 0 else (2 - xi if xi > 1 else xi) for xi in y]) 
+            case "clip":
+                y = np.array([0 if xi < 0 else ( 1 if xi > 1 else xi) for xi in y])
+            case "wrapping":
+                y = np.array([xi -1 if xi > 1 else (xi + 1 if xi < 0 else xi ) for xi in y ])
+        return y 
+
+    
 
 
 
-MooAlgorithm(10,10,0.3,1.0)
+MooAlgorithm(100,10,0.3,1.0,0.5)
