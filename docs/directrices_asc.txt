@@ -15,4 +15,5 @@ Los valores deberán ir desde (0,1) ..... (1,0) Dichos vectores deberán estar u
 Para el calculo de las distancias euclideas matriz simetrica
 
 
-print(np.linalg.norm(self.lambda_population[0] - self.lambda_population[1]))
+Preguntas para el profesor
+Suponemos que SIG es siempre 20?

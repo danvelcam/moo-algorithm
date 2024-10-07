@@ -20,7 +20,9 @@ class MooAlgorithm():
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
         self.scale_factor = scale_factor
         self.boundary_handling = boundary_handling
-        self.cross(6)
+        patata = self.cross(6)
+        print(patata)
+        print(self.mutation(patata))
 
     #Cuando generamos una nueva solucion se ha de verificar que se encuentre en el espacio de busqueda
     def generate_lambda_population(self):
@@ -69,6 +71,9 @@ class MooAlgorithm():
         r2 = self.xi[r2]
         r3 = self.xi[r3]
         y = r1 + self.scale_factor * (r2 - r3)
+        return self.handle_boundary(y)
+       
+    def handle_boundary(self,y):
         match self.boundary_handling:
             case "rebound":
                 y = np.array([-xi if xi < 0 else (2 - xi if xi > 1 else xi) for xi in y]) 
@@ -76,8 +81,13 @@ class MooAlgorithm():
                 y = np.array([0 if xi < 0 else ( 1 if xi > 1 else xi) for xi in y])
             case "wrapping":
                 y = np.array([xi -1 if xi > 1 else (xi + 1 if xi < 0 else xi ) for xi in y ])
-        return y 
+        return y
 
+    #Assuming SIG is 20
+    def mutation(self,individual):
+        sigma = (self.max - 0) / 20 
+        new_individual = individual + np.random.normal(0, sigma, size=30)
+        return self.handle_boundary(new_individual)
     
 
 
