@@ -3,6 +3,8 @@ import math
 import random
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import os
+
 class MooAlgorithm():
     def __init__(self, population, generations, neighborhood, max, scale_factor=0.5, boundary_handling = "rebound", cr=0.5):
         if population  <= 0:
@@ -24,12 +26,11 @@ class MooAlgorithm():
         self.xi = np.array([np.random.rand(30) for i in range(self.p)])
         self.evaluations = self.evaluate_population() 
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
-        self.run()
        
     def generate_lambda_population(self):
         vectors = []
         for i in range(self.p):
-            x1 = (i / self.p) * self.max
+            x1 = (i / (self.p - 1)) * self.max
             x2 = self.max - x1
             vectors.append([x1, x2])
         return np.array(vectors)
@@ -66,7 +67,7 @@ class MooAlgorithm():
         return np.array(population_evaluated)
     
     def cross(self, individual_index):
-        cross_individuals = random.choices(self.neighbors[individual_index], k=3)
+        cross_individuals = np.random.choice(self.neighbors[individual_index], size=3,replace=False)
         r1,r2,r3 = cross_individuals
         r1 = self.xi[r1]
         r2 = self.xi[r2]
@@ -90,17 +91,46 @@ class MooAlgorithm():
         new_individual = individual + np.random.normal(0, sigma, size=30)
         return self.handle_boundary(new_individual)
     
-    def compare(self,x_index,y,y_evaluation):
-        x = self.xi[x_index]
+    def compare(self,x_index,y_evaluation):
         lambda_i = self.lambda_population[x_index]
         x_evaluation = self.evaluations[x_index]
-        gx = max(lambda_i * abs(x_evaluation - self.zi))
-        gy = max(lambda_i * abs(y_evaluation - self.zi))
+        gx = np.max(lambda_i * np.abs(x_evaluation - self.zi))
+        gy = np.max(lambda_i * np.abs(y_evaluation - self.zi))
         return gy <= gx
-
+    
+    def de_crossover(self,index, mutant_vector ):
+        individual = self.xi[index]
+        d = len(individual)
+        j_rand = np.random.randint(0,d )
+    
+        u_trial = np.zeros(d)
+    
+        for j in range(d):
+            if np.random.rand() <= self.cr or j == j_rand:
+                u_trial[j] = mutant_vector[j]
+            else:
+                u_trial[j] = individual[j]
+    
+        return u_trial
+    
     def run(self):
+        for generation in range(self.g):
+            for i in range(self.p):
+                y = self.cross(i)
+                y_mutated = self.de_crossover(i,y)
+                if random.random() < self.pr:
+                    y_mutated = self.mutation(y_mutated)
+                y_evaluation = self.evaluate(y_mutated)
+                self.zi = np.minimum(self.zi, y_evaluation)
+                for neighbor_index in self.neighbors[i]:
+                    if self.compare(neighbor_index, y_evaluation):
+                        self.xi[neighbor_index] = y_mutated  # Actualizar vecino
+                        self.evaluations[neighbor_index] = y_evaluation  # Actualizar evaluación del vecino
+        return self.evaluations
+
+    def plot(self):
         fig, ax = plt.subplots()
-        x_pf, y_pf = self.read_dat('PF.dat')
+        x_pf, y_pf = self.read_data('src/PF.dat')
         pareto_plot = ax.scatter(x_pf, y_pf, color='green', label='Pareto front', marker='o')
         x, y = self.separate_coordinates()
         pop_plot = ax.scatter(x, y, color='blue', label='F(x)', marker='o')
@@ -109,32 +139,17 @@ class MooAlgorithm():
         ax.legend()
         iteration_text = ax.text(0.05, 0.95, '', transform=ax.transAxes, fontsize=12, verticalalignment='top')
         def update_frame(frame):
-            for generation in range(self.g):
-                for i in range(self.p):
-                    if random.random() < self.cr:
-                        y = self.cross(i)
-                    else:
-                        y = self.xi[i]
-                    if random.random() < self.pr:
-                        y_mutated = self.mutation(y)
-                    else:
-                        y_mutated = y
-                    y_evaluation = self.evaluate(y_mutated)
-                    self.zi = np.minimum(self.zi, y_evaluation)
-                    for neighbor_index in self.neighbors[i]:
-                        if self.compare(neighbor_index, y_mutated, y_evaluation):
-                            self.xi[neighbor_index] = y_mutated  # Actualizar vecino
-                            self.evaluations[neighbor_index] = y_evaluation  # Actualizar evaluación del vecino
+            self.run()
             x, y = self.separate_coordinates()
             pop_plot.set_offsets(np.c_[x, y])
             iteration_text.set_text(f"Iteración: {frame + 1}")
             return pop_plot, iteration_text
-        anim = FuncAnimation(fig, update_frame, frames=self.g, interval=50, repeat=False)
+        anim = FuncAnimation(fig, update_frame, frames=self.g, interval=0.01, repeat=False)
         plt.show()
         return self.evaluations
 
 
-    def read_dat(self, file_name):
+    def read_data(self, file_name):
         x = []
         y = []
         with open(file_name, 'r') as file:
@@ -151,5 +166,12 @@ class MooAlgorithm():
             x.append(i[0])
             y.append(i[1])
         return x, y
-
-MooAlgorithm(40,250,0.3,1.0,0.5)
+    
+#RECORDAR QUE PARA EL SOFTWARE DE MÉTRICAS LA 3 COLUMNA (RESTRICCIONES) SERÁ SIEMPRE 0 HA DE ESTAR INCLUIDA SI NO NO FUNCIONARÁ
+#DEFINIR MEDIANTE _str__ el nombre de los ficheros para asi tener el nombre del fichero 
+#DEJAR EL RUN FUERA DEL INIT 
+#SEPERAR EL PLOT DEL RUN
+# PARA ASI PODER LLAMAR DE MANERA CORRECTA Y AISLADA
+#RECORDAR POSIBLE PROBLEMA DE LA COMA CON EL PUNTO
+alg=MooAlgorithm(40,250,0.3,1.0,0.5)
+alg.plot()
