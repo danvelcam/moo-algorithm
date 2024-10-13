@@ -3,29 +3,48 @@ import math
 import random
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from problems.zdt3 import ZDT3
+from problems.cf6 import CF6
 import os
 
+
 class MooAlgorithm():
-    def __init__(self, population, generations, neighborhood, max, scale_factor=0.5, boundary_handling = "rebound", cr=0.5):
-        if population  <= 0:
-            raise ValueError(f"Population should be a positive number, but received {population}")
-        if not  0 < neighborhood <= 1:
-            raise ValueError(f"""Neighborhood should be a percentage 
-                represented between 0 (not included) and 1 (included), but received {neighborhood}""")
+    def __init__(self, population, generations, neighborhood, max,dimensions, problem,
+            scale_factor=0.5, boundary_handling = "rebound", cr=0.5,  seed=None ):
+        self._validate_parameters(population, neighborhood)
         self.p = population
         self.g = generations
         self.ng_size = math.floor(neighborhood * population)
         self.max = max
         self.scale_factor = scale_factor
+        self.seed = seed
+        self._initialize_random_seed()
+        self.problem = problem
         self.boundary_handling = boundary_handling
         self.cr = cr
+        self.dimensions = dimensions
         self.pr = 1 / self.p
+
         self.lambda_population = self.generate_lambda_population()
         self.euclidean_distance  = self.euclidean_distance_matrix()
         self.neighbors = self.closest_neighbors()
-        self.xi = np.array([np.random.rand(30) for i in range(self.p)])
+        self.xi = self.problem.generate_population(self.p)
         self.evaluations = self.evaluate_population() 
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
+
+        self.filename = f"allpop_{self.problem.name}_{self.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
+
+    def _validate_parameters(self, population, neighborhood):
+        if population <= 0:
+            raise ValueError(f"Population should be a positive number, but received {population}")
+        if not 0 < neighborhood <= 1:
+            raise ValueError(f"""Neighborhood should be a percentage represented between 0 (not included) 
+                                 and 1 (included), but received {neighborhood}""")
+    
+    def _initialize_random_seed(self):
+        if self.seed is not None:
+            random.seed(self.seed)
+            np.random.seed(self.seed)
        
     def generate_lambda_population(self):
         vectors = []
@@ -53,18 +72,10 @@ class MooAlgorithm():
             neighbors.append(closest_neighbors)
         return np.array(neighbors)
     
-    def evaluate(self,individual):
-        f1 = individual[0]
-        g = 1 + (9 / (30 - 1)) * np.sum(individual[1:])
-        h = 1 - math.sqrt(f1/g) - ((f1/g) * math.sin(10 * math.pi * f1 ))
-        f2 = g * h
-        return np.array([f1,f2])
-
+    
     def evaluate_population(self):
-        population_evaluated = []
-        for i in range(self.p):
-            population_evaluated.append(self.evaluate(self.xi[i]))
-        return np.array(population_evaluated)
+        return np.array([self.problem.evaluate(individual) for individual in self.xi])
+
     
     def cross(self, individual_index):
         cross_individuals = np.random.choice(self.neighbors[individual_index], size=3,replace=False)
@@ -73,23 +84,12 @@ class MooAlgorithm():
         r2 = self.xi[r2]
         r3 = self.xi[r3]
         y = r1 + self.scale_factor * (r2 - r3)
-        return self.handle_boundary(y)
-       
-    def handle_boundary(self,y):
-        match self.boundary_handling:
-            case "rebound":
-                y = np.array([-xi if xi < 0 else (2 - xi if xi > 1 else xi) for xi in y]) 
-            case "clip":
-                y = np.array([0 if xi < 0 else ( 1 if xi > 1 else xi) for xi in y])
-            case "wrapping":
-                y = np.array([xi -1 if xi > 1 else (xi + 1 if xi < 0 else xi ) for xi in y ])
-        return y
-
-    #Assuming SIG is 20
+        return self.problem.handle_boundary(y, self.boundary_handling)
+    
     def mutation(self,individual):
         sigma = (self.max - 0) / 20 
-        new_individual = individual + np.random.normal(0, sigma, size=30)
-        return self.handle_boundary(new_individual)
+        new_individual = individual + np.random.normal(0, sigma, size=self.problem.dimensions)
+        return self.problem.handle_boundary(new_individual, self.boundary_handling)
     
     def compare(self,x_index,y_evaluation):
         lambda_i = self.lambda_population[x_index]
@@ -120,17 +120,18 @@ class MooAlgorithm():
                 y_mutated = self.de_crossover(i,y)
                 if random.random() < self.pr:
                     y_mutated = self.mutation(y_mutated)
-                y_evaluation = self.evaluate(y_mutated)
+                y_evaluation = self.problem.evaluate(y_mutated)
                 self.zi = np.minimum(self.zi, y_evaluation)
                 for neighbor_index in self.neighbors[i]:
                     if self.compare(neighbor_index, y_evaluation):
                         self.xi[neighbor_index] = y_mutated  # Actualizar vecino
                         self.evaluations[neighbor_index] = y_evaluation  # Actualizar evaluación del vecino
+            self.save_evaluations()
         return self.evaluations
 
     def plot(self):
         fig, ax = plt.subplots()
-        x_pf, y_pf = self.read_data('src/PF.dat')
+        x_pf, y_pf = self.read_data(self.problem.pareto_front)
         pareto_plot = ax.scatter(x_pf, y_pf, color='green', label='Pareto front', marker='o')
         x, y = self.separate_coordinates()
         pop_plot = ax.scatter(x, y, color='blue', label='F(x)', marker='o')
@@ -167,11 +168,14 @@ class MooAlgorithm():
             y.append(i[1])
         return x, y
     
-#RECORDAR QUE PARA EL SOFTWARE DE MÉTRICAS LA 3 COLUMNA (RESTRICCIONES) SERÁ SIEMPRE 0 HA DE ESTAR INCLUIDA SI NO NO FUNCIONARÁ
-#DEFINIR MEDIANTE _str__ el nombre de los ficheros para asi tener el nombre del fichero 
-#DEJAR EL RUN FUERA DEL INIT 
-#SEPERAR EL PLOT DEL RUN
-# PARA ASI PODER LLAMAR DE MANERA CORRECTA Y AISLADA
-#RECORDAR POSIBLE PROBLEMA DE LA COMA CON EL PUNTO
-alg=MooAlgorithm(40,250,0.3,1.0,0.5)
+    def save_evaluations(self):
+        with open("./src/tests/"+self.filename, 'a') as file:
+            for eval in self.evaluations:
+                file.write(f"{eval[0]:.6f} {eval[1]:.6f} 0.00\n")
+
+
+#problem = ZDT3()
+cf6 = CF6(4)
+zdt3 = ZDT3()
+alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,max=1.0,dimensions=30,scale_factor=0.5,seed=55, problem=zdt3)
 alg.plot()
