@@ -9,30 +9,31 @@ import os
 
 
 class MooAlgorithm():
-    def __init__(self, population, generations, neighborhood, max,dimensions, problem,
+    def __init__(self, population, generations, neighborhood, problem,
             scale_factor=0.5, boundary_handling = "rebound", cr=0.5,  seed=None ):
         self._validate_parameters(population, neighborhood)
         self.p = population
         self.g = generations
         self.ng_size = math.floor(neighborhood * population)
-        self.max = max
+        self.max = problem.max
         self.scale_factor = scale_factor
         self.seed = seed
         self._initialize_random_seed()
         self.problem = problem
         self.boundary_handling = boundary_handling
         self.cr = cr
-        self.dimensions = dimensions
         self.pr = 1 / self.p
 
         self.lambda_population = self.generate_lambda_population()
         self.euclidean_distance  = self.euclidean_distance_matrix()
         self.neighbors = self.closest_neighbors()
         self.xi = self.problem.generate_population(self.p)
-        self.evaluations = self.evaluate_population() 
+        self.evaluations = self.evaluate_population()
+        if isinstance(self.problem, CF6):
+            self.constraints = np.array([self.problem.constraints(individual) for individual in self.xi])
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
 
-        self.filename = f"allpop_{self.problem.name}_{self.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
+        self.filename = f"allpop_{self.problem.name}_{self.problem.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
 
     def _validate_parameters(self, population, neighborhood):
         if population <= 0:
@@ -91,12 +92,7 @@ class MooAlgorithm():
         new_individual = individual + np.random.normal(0, sigma, size=self.problem.dimensions)
         return self.problem.handle_boundary(new_individual, self.boundary_handling)
     
-    def compare(self,x_index,y_evaluation):
-        lambda_i = self.lambda_population[x_index]
-        x_evaluation = self.evaluations[x_index]
-        gx = np.max(lambda_i * np.abs(x_evaluation - self.zi))
-        gy = np.max(lambda_i * np.abs(y_evaluation - self.zi))
-        return gy <= gx
+  
     
     def de_crossover(self,index, mutant_vector ):
         individual = self.xi[index]
@@ -113,6 +109,31 @@ class MooAlgorithm():
     
         return u_trial
     
+
+    def compare(self,x_index,y_evaluation):
+        lambda_i = self.lambda_population[x_index]
+        x_evaluation = self.evaluations[x_index]
+        gx = np.max(lambda_i * np.abs(x_evaluation - self.zi))
+        gy = np.max(lambda_i * np.abs(y_evaluation - self.zi))
+        return gy <= gx
+    
+    def compare_constraints(self, x_index,y_evaluation, y_constraints):
+        constraints_x = self.constraints[x_index]
+        x_violates = np.any(constraints_x < 0)
+        y_violates = np.any(y_constraints < 0)
+
+        if x_violates and y_violates:
+            return np.sum(y_constraints) < np.sum(constraints_x)
+        
+        elif not x_violates and y_violates:
+            return False
+        
+        elif x_violates and not y_violates:
+            return True
+        
+        else:
+            return self.compare(x_index,y_evaluation)
+    
     def run(self):
         for generation in range(self.g):
             for i in range(self.p):
@@ -122,10 +143,19 @@ class MooAlgorithm():
                     y_mutated = self.mutation(y_mutated)
                 y_evaluation = self.problem.evaluate(y_mutated)
                 self.zi = np.minimum(self.zi, y_evaluation)
-                for neighbor_index in self.neighbors[i]:
-                    if self.compare(neighbor_index, y_evaluation):
-                        self.xi[neighbor_index] = y_mutated  # Actualizar vecino
-                        self.evaluations[neighbor_index] = y_evaluation  # Actualizar evaluación del vecino
+                if isinstance(self.problem, ZDT3):
+                    for neighbor_index in self.neighbors[i]:
+                        if self.compare(neighbor_index, y_evaluation):
+                            self.xi[neighbor_index] = y_mutated  
+                            self.evaluations[neighbor_index] = y_evaluation 
+                elif isinstance(self.problem, CF6):
+                    y_constraints = self.problem.constraints(y_mutated)
+                    for neighbor_index in self.neighbors[i]:
+                        if self.compare_constraints(neighbor_index, y_evaluation, y_constraints):
+                            self.xi[neighbor_index] = y_mutated  
+                            self.evaluations[neighbor_index] = y_evaluation 
+                            self.constraints[neighbor_index] = y_constraints
+                    
             self.save_evaluations()
         return self.evaluations
 
@@ -175,7 +205,8 @@ class MooAlgorithm():
 
 
 #problem = ZDT3()
+#Cambios en el max porque segun problema ha de cambiar 
 cf6 = CF6(4)
 zdt3 = ZDT3()
-alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,max=1.0,dimensions=30,scale_factor=0.5,seed=55, problem=zdt3)
+alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=121, problem=cf6)
 alg.plot()

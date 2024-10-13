@@ -7,6 +7,7 @@ class ZDT3(ProblemBase):
         self.dimensions = dimensions 
         self.pareto_front = 'src/zdt3_pf.dat'
         self.name = 'zdt3'
+        self.max = 1
 
 
     def evaluate(self,individual: np.ndarray) -> np.ndarray:
