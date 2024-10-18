@@ -15,7 +15,7 @@ class MooAlgorithm():
         self.p = population
         self.g = generations
         self.ng_size = math.floor(neighborhood * population)
-        self.max = problem.max
+        self.max = 1
         self.scale_factor = scale_factor
         self.seed = seed
         self._initialize_random_seed()
@@ -117,25 +117,35 @@ class MooAlgorithm():
         gy = np.max(lambda_i * np.abs(y_evaluation - self.zi))
         return gy <= gx
     
+    def calculate_constraint_violation(self,constraint):
+        constraint[constraint >= 0] = 0
+        cv = - np.sum(constraint)
+        return cv
+    
+    
+    
     def compare_constraints(self, x_index,y_evaluation, y_constraints):
         constraints_x = self.constraints[x_index]
-        x_violates = np.any(constraints_x < 0)
-        y_violates = np.any(y_constraints < 0)
+        x_cv = self.calculate_constraint_violation(constraints_x)
+        y_cv = self.calculate_constraint_violation(y_constraints)
 
-        if x_violates and y_violates:
-            return np.sum(y_constraints) < np.sum(constraints_x)
-        
-        elif not x_violates and y_violates:
+        if x_cv == 0 and y_cv == 0:
+            return self.compare(x_index, y_evaluation)
+
+        elif x_cv == 0 and  y_cv > 0:
             return False
-        
-        elif x_violates and not y_violates:
+         
+        elif x_cv > 0 and  y_cv == 0:
             return True
+
+        elif x_cv > 0 and y_cv > 0:
+            return y_cv < x_cv
         
-        else:
-            return self.compare(x_index,y_evaluation)
+
     
     def run(self):
         for generation in range(self.g):
+            self.save_evaluations()
             for i in range(self.p):
                 y = self.cross(i)
                 y_mutated = self.de_crossover(i,y)
@@ -150,13 +160,12 @@ class MooAlgorithm():
                             self.evaluations[neighbor_index] = y_evaluation 
                 elif isinstance(self.problem, CF6):
                     y_constraints = self.problem.constraints(y_mutated)
-                    for neighbor_index in self.neighbors[i]:
-                        if self.compare_constraints(neighbor_index, y_evaluation, y_constraints):
-                            self.xi[neighbor_index] = y_mutated  
-                            self.evaluations[neighbor_index] = y_evaluation 
-                            self.constraints[neighbor_index] = y_constraints
-                    
-            self.save_evaluations()
+                    print(f"Generación {generation}, individuo {i}, restricciones: {y_constraints}")
+                    print(f"Violación de restricciones: {self.calculate_constraint_violation(y_constraints)}")
+                    if self.compare_constraints(i, y_evaluation, y_constraints):
+                            self.xi[i] = y_mutated  
+                            self.evaluations[i] = y_evaluation 
+                            self.constraints[i] = y_constraints
         return self.evaluations
 
     def plot(self):
@@ -200,13 +209,22 @@ class MooAlgorithm():
     
     def save_evaluations(self):
         with open("./src/tests/"+self.filename, 'a') as file:
-            for eval in self.evaluations:
-                file.write(f"{eval[0]:.6f} {eval[1]:.6f} 0.00\n")
+            for i in range(self.p):
+                evaluation = self.evaluations[i]
+                individual = self.xi[i]
+                if isinstance(self.problem, CF6):
+                    constraint = self.constraints[i]
+                    file.write(f"{evaluation[0]:.6f} {evaluation[1]:.6f} {constraint[0]:.6f} {constraint[1]:.6f} {self.calculate_constraint_violation(constraint):6f}  {individual}\n")
+                else:                    
+                    file.write(f"{evaluation[0]:.6f} {evaluation[1]:.6f} 0.00  {individual}\n")
+
 
 
 #problem = ZDT3()
 #Cambios en el max porque segun problema ha de cambiar 
 cf6 = CF6(4)
 zdt3 = ZDT3()
-alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=121, problem=cf6)
-alg.plot()
+alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
+alg.run()
+
+

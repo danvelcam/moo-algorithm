@@ -5,20 +5,20 @@ import math
 class CF6(ProblemBase):
     def __init__(self, dimensions):
         self.dimensions = dimensions
-        self.pareto_front = 'src/cf6_pf.dat'
+        self.pareto_front = 'src/cf6_16.dat'
         self.name = 'cf6'
         self.max = 2 
 
     def evaluate(self,individual: np.ndarray) -> np.ndarray:
         x1 = individual[0]
-        J1 = [j for j in range(1, self.dimensions) if j % 2 != 0]  # Impares
-        J2 = [j for j in range(1, self.dimensions) if j % 2 == 0]  # Pares
+        J1 = [j for j in range(1, self.dimensions) if j % 2 != 0]  
+        J2 = [j for j in range(1, self.dimensions) if j % 2 == 0]  
 
-        y_j_J1 = np.array([individual[j] - 0.8 * x1 * np.cos(6 * np.pi * x1 + ((j * np.pi) / self.dimensions)) for j in J1])
-        y_j_J2 = np.array([individual[j] - 0.8 * x1 * np.sin(6 * np.pi * x1 + ((j * np.pi) / self.dimensions)) for j in J2])
+        y_j_J1 = np.array([individual[j] - (0.8 * x1) * math.cos((6 * np.pi * x1) + ((j * np.pi) / self.dimensions)) for j in J1])
+        y_j_J2 = np.array([individual[j] - (0.8 * x1) * math.sin((6 * np.pi * x1) + ((j * np.pi) / self.dimensions)) for j in J2])
         
         f1 = x1 + np.sum(y_j_J1**2)
-        f2 = (1-x1)**2 + np.sum(y_j_J2**2)
+        f2 = ((1-x1)**2) + np.sum(y_j_J2**2)
         
         return np.array([f1, f2])
     
@@ -27,11 +27,11 @@ class CF6(ProblemBase):
         x2 = individual[1]
         x4 = individual[3]
 
-        c1 = (x2 - 0.8 * x1) * (np.sin(6 * np.pi * x1 + ((2*np.pi)/self.dimensions))) - (np.sign(0.5 * (1-x1) - (1 - x2) ** 2))
-        c1 = c1 * np.sqrt(np.abs(0.5 * (1 - x1) - (1-x2)**2))
+        c1 = (x2 - (0.8 * x1)) * (np.sin((6 * np.pi * x1) + ((2*np.pi)/self.dimensions))) - (np.sign(0.5 * (1-x1) - ((1 - x2) ** 2)))
+        c1 = c1 * np.sqrt(np.abs(0.5 * (1 - x1) - ((1-x2)**2)))
 
-        c2 = (x4 - 0.8 * x1) * (np.sin(6 * np.pi * x1 + ((4*np.pi)/self.dimensions))) - (np.sign(0.25 * np.sqrt(1 - x1) - 0.5 * (1 - x1)))
-        c2 = c2 * np.sqrt(np.abs(0.25 * np.sqrt(1 - x1) - 0.5 * (1 - x1)))
+        c2 = (x4 - (0.8 * x1)) * (np.sin((6 * np.pi * x1) + ((4*np.pi)/self.dimensions))) - (np.sign(0.25 * np.sqrt(1 - x1) - (0.5 * (1 - x1))))
+        c2 = c2 * np.sqrt(np.abs(0.25 * (np.sqrt(1 - x1)) - (0.5 * (1 - x1))))
 
         return np.array([c1,c2])
     
