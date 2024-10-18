@@ -34,6 +34,8 @@ class MooAlgorithm():
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
 
         self.filename = f"allpop_{self.problem.name}_{self.problem.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
+        #print(self.problem.constraints(np.array([ 0.66326244,0.48941932,0.46235467,-0.39137341])))
+        self.run()
 
     def _validate_parameters(self, population, neighborhood):
         if population <= 0:
@@ -118,9 +120,10 @@ class MooAlgorithm():
         return gy <= gx
     
     def calculate_constraint_violation(self,constraint):
-        constraint[constraint >= 0] = 0
-        cv = - np.sum(constraint)
-        return cv
+        cv = [0  if x >= 0 else -x  for x in constraint ]
+        # constraint[constraint >= 0] = 0
+        # cv = - np.sum(constraint)
+        return sum(cv)
     
     
     
@@ -160,8 +163,8 @@ class MooAlgorithm():
                             self.evaluations[neighbor_index] = y_evaluation 
                 elif isinstance(self.problem, CF6):
                     y_constraints = self.problem.constraints(y_mutated)
-                    print(f"Generación {generation}, individuo {i}, restricciones: {y_constraints}")
-                    print(f"Violación de restricciones: {self.calculate_constraint_violation(y_constraints)}")
+                    # print(f"Generación {generation}, individuo {i}, restricciones: {y_constraints}")
+                    # print(f"Violación de restricciones: {self.calculate_constraint_violation(y_constraints)}")
                     if self.compare_constraints(i, y_evaluation, y_constraints):
                             self.xi[i] = y_mutated  
                             self.evaluations[i] = y_evaluation 
@@ -187,6 +190,17 @@ class MooAlgorithm():
         anim = FuncAnimation(fig, update_frame, frames=self.g, interval=0.01, repeat=False)
         plt.show()
         return self.evaluations
+
+    def last_plot(self):
+        fig, ax = plt.subplots()
+        x_pf, y_pf = self.read_data(self.problem.pareto_front)
+        pareto_plot = ax.scatter(x_pf, y_pf, color='green', label='Pareto front', marker='o')
+        x, y = self.separate_coordinates()
+        pop_plot = ax.scatter(x, y, color='blue', label='F(x)', marker='o')
+        ax.set_xlabel("f1(x)")
+        ax.set_ylabel("f2(x)")
+        ax.legend()
+        plt.show()
 
 
     def read_data(self, file_name):
@@ -224,7 +238,7 @@ class MooAlgorithm():
 #Cambios en el max porque segun problema ha de cambiar 
 cf6 = CF6(4)
 zdt3 = ZDT3()
-alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
-alg.run()
+alg = MooAlgorithm(population=40,generations=100,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
+alg.last_plot()
 
 

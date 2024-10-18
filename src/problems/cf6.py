@@ -23,17 +23,20 @@ class CF6(ProblemBase):
         return np.array([f1, f2])
     
     def constraints(self,individual: np.ndarray) -> np.ndarray:
-        x1 = individual[0]
-        x2 = individual[1]
-        x4 = individual[3]
+        x1 = individual[0]  # x1
+        x2 = individual[1]  # x2
+        x4 = individual[3]  # x4
 
-        c1 = (x2 - (0.8 * x1)) * (np.sin((6 * np.pi * x1) + ((2*np.pi)/self.dimensions))) - (np.sign(0.5 * (1-x1) - ((1 - x2) ** 2)))
-        c1 = c1 * np.sqrt(np.abs(0.5 * (1 - x1) - ((1-x2)**2)))
+        term1_r1 = x2 - 0.8 * x1 * np.sin(6 * np.pi * x1 + (2 * np.pi / self.dimensions))
+        term2_r1 = np.sign(0.5 * (1 - x1) - (1 - x1)**2) * np.sqrt(abs(0.5 * (1 - x1) - (1 - x1)**2))
+        restriccion1 = term1_r1 - term2_r1
 
-        c2 = (x4 - (0.8 * x1)) * (np.sin((6 * np.pi * x1) + ((4*np.pi)/self.dimensions))) - (np.sign(0.25 * np.sqrt(1 - x1) - (0.5 * (1 - x1))))
-        c2 = c2 * np.sqrt(np.abs(0.25 * (np.sqrt(1 - x1)) - (0.5 * (1 - x1))))
+        term1_r2 = x4 - 0.8 * x1 * np.sin(6 * np.pi * x1 + (4 * np.pi / self.dimensions))
+        term2_r2 = np.sign(0.25 * np.sqrt(1 - x1) - 0.5 * (1 - x1)) * np.sqrt(abs(0.25 * np.sqrt(1 - x1) - 0.5 * (1 - x1)))
+        restriccion2 = term1_r2 - term2_r2
 
-        return np.array([c1,c2])
+        return np.array([restriccion1, restriccion2])
+
     
     def handle_boundary(self, y, handling):
         match handling:
