@@ -11,14 +11,22 @@ class CF6(ProblemBase):
 
     def evaluate(self,individual: np.ndarray) -> np.ndarray:
         x1 = individual[0]
-        J1 = [j for j in range(1, self.dimensions) if j % 2 != 0]  
-        J2 = [j for j in range(1, self.dimensions) if j % 2 == 0]  
+        J1 = [j for j in range(2, self.dimensions+1) if j % 2 != 0]  # j impar y 2 <= j <= n
+        J2 = [j for j in range(2, self.dimensions+1) if j % 2 == 0]  # j par y 2 <= j <= n
 
-        y_j_J1 = np.array([individual[j] - (0.8 * x1) * math.cos((6 * np.pi * x1) + ((j * np.pi) / self.dimensions)) for j in J1])
-        y_j_J2 = np.array([individual[j] - (0.8 * x1) * math.sin((6 * np.pi * x1) + ((j * np.pi) / self.dimensions)) for j in J2])
+        # Inicializar las funciones objetivo
+        f1 = x1
+        f2 = (1 - x1)**2
         
-        f1 = x1 + np.sum(y_j_J1**2)
-        f2 = ((1-x1)**2) + np.sum(y_j_J2**2)
+        # Calcular y_j y sumar los términos correspondientes
+        for j in J1:
+            y_j = individual[j-1] - 0.8 * x1 * np.cos(6 * np.pi * x1 + (j * np.pi) / self.dimensions)
+            f1 += y_j**2
+            
+        for j in J2:
+            y_j = individual[j-1] - 0.8 * x1 * np.sin(6 * np.pi * x1 + (j * np.pi) / self.dimensions)
+            f2 += y_j**2
+        
         
         return np.array([f1, f2])
     

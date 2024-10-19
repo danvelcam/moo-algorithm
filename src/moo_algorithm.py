@@ -34,7 +34,6 @@ class MooAlgorithm():
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
 
         self.filename = f"allpop_{self.problem.name}_{self.problem.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
-        #print(self.problem.constraints(np.array([ 0.66326244,0.48941932,0.46235467,-0.39137341])))
         self.run()
 
     def _validate_parameters(self, population, neighborhood):
@@ -236,9 +235,9 @@ class MooAlgorithm():
 
 #problem = ZDT3()
 #Cambios en el max porque segun problema ha de cambiar 
-cf6 = CF6(4)
+cf6 = CF6(16)
 zdt3 = ZDT3()
-alg = MooAlgorithm(population=40,generations=100,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
+alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
 alg.last_plot()
 
 
