@@ -32,7 +32,6 @@ class MooAlgorithm():
         if isinstance(self.problem, CF6):
             self.constraints = np.array([self.problem.constraints(individual) for individual in self.xi])
         self.zi = np.array([np.min(self.evaluations[:,0]), np.min(self.evaluations[:,1] )])
-
         self.filename = f"allpop_{self.problem.name}_{self.problem.dimensions}d_{self.p}p_{self.g}g_seed{self.seed}.out"
         self.run()
 
@@ -162,8 +161,6 @@ class MooAlgorithm():
                             self.evaluations[neighbor_index] = y_evaluation 
                 elif isinstance(self.problem, CF6):
                     y_constraints = self.problem.constraints(y_mutated)
-                    # print(f"Generación {generation}, individuo {i}, restricciones: {y_constraints}")
-                    # print(f"Violación de restricciones: {self.calculate_constraint_violation(y_constraints)}")
                     if self.compare_constraints(i, y_evaluation, y_constraints):
                             self.xi[i] = y_mutated  
                             self.evaluations[i] = y_evaluation 
@@ -232,12 +229,7 @@ class MooAlgorithm():
                     file.write(f"{evaluation[0]:.6f} {evaluation[1]:.6f} 0.00  {individual}\n")
 
 
-
-#problem = ZDT3()
-#Cambios en el max porque segun problema ha de cambiar 
 cf6 = CF6(16)
 zdt3 = ZDT3()
 alg = MooAlgorithm(population=40,generations=250,neighborhood=0.3,scale_factor=0.5,seed=random.randint(0,100), problem=cf6)
 alg.last_plot()
-
-
